@@ -72,6 +72,7 @@ class KernelBenchmarker:
         self.compute_capability = compute_capability
         self.temp_dir = Path(tempfile.mkdtemp(prefix="kernel_benchmark_"))
         self.results = []
+        self._kernel_cache = {}  # Cache compiled PyCUDA modules: {(source_file, kernel_name): (module, func)}
         
         if use_pycuda:
             try:
@@ -138,19 +139,25 @@ class KernelBenchmarker:
         c = np.zeros((N, M), dtype=np.float32)
         return a, b, c
     
-    def _benchmark_pycuda(self, kernel: KernelConfig, params: Dict[str, Any], 
+    def _benchmark_pycuda(self, kernel: KernelConfig, params: Dict[str, Any],
                          iterations: int = 100) -> BenchmarkResult:
         """Benchmark using PyCUDA (direct execution)."""
         import pycuda.driver as cuda
         from pycuda.compiler import SourceModule
-        
-        # Read kernel source
-        with open(kernel.source_file, 'r') as f:
-            kernel_source = f.read()
-        
-        # Compile kernel
-        mod = SourceModule(kernel_source, arch=self.compute_capability)
-        kernel_func = mod.get_function(kernel.kernel_name)
+
+        # Check cache for compiled kernel
+        cache_key = (kernel.source_file, kernel.kernel_name)
+        if cache_key in self._kernel_cache:
+            mod, kernel_func = self._kernel_cache[cache_key]
+        else:
+            # Read kernel source
+            with open(kernel.source_file, 'r') as f:
+                kernel_source = f.read()
+
+            # Compile kernel and cache it
+            mod = SourceModule(kernel_source, arch=self.compute_capability)
+            kernel_func = mod.get_function(kernel.kernel_name)
+            self._kernel_cache[cache_key] = (mod, kernel_func)
         
         # Prepare data based on kernel type (infer from parameters)
         N = params.get('N', 1024)
