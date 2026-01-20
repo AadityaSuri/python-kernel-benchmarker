@@ -1,0 +1,21 @@
+# KernelBenchmarker Python API - Requirements
+
+# Core dependencies
+numpy>=1.19.0
+matplotlib>=3.3.0
+seaborn>=0.11.0
+
+# Optional: For faster direct kernel execution
+# Uncomment if you want to use PyCUDA mode
+# pycuda>=2021.1
+
+# Note: CUDA Toolkit must be installed separately
+# - NVIDIA CUDA Toolkit (11.0+)
+# - NVIDIA Nsight Compute (ncu) - for profiling
+# - nvcc compiler
+
+# Installation:
+# pip install -r requirements.txt
+#
+# For PyCUDA (optional but recommended):
+# pip install pycuda
