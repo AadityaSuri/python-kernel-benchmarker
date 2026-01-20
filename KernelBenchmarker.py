@@ -395,25 +395,38 @@ int main() {{
         return metrics
     
     def benchmark(self, kernels: List[KernelConfig], *param_ranges,
-                 iterations: int = 100, profile: bool = True) -> List[BenchmarkResult]:
+                 iterations: int = 100, profile: bool = True,
+                 zip_params: bool = False) -> List[BenchmarkResult]:
         """
         Benchmark kernels across parameter ranges.
-        
+
         Args:
             kernels: List of KernelConfig objects
             *param_ranges: Variable number of parameter ranges
                           E.g., N=[128, 256], M=[128, 256]
             iterations: Number of iterations per benchmark
             profile: Whether to run Nsight Compute profiling
-        
+            zip_params: If False (default), generates all combinations using
+                       itertools.product (e.g., N=[1,2], M=[1,2] → 4 combos).
+                       If True, zips parameters together (e.g., N=[1,2], M=[1,2]
+                       → 2 combos: (1,1), (2,2)). Useful for square matrices.
+
         Returns:
             List of BenchmarkResult objects
-        
+
         Example:
+            >>> # All combinations (default): 9 benchmarks
             >>> results = benchmarker.benchmark(
             ...     [kernel1, kernel2],
             ...     N=[128, 256, 512],
             ...     M=[128, 256, 512]
+            ... )
+            >>> # Zipped parameters: 3 benchmarks (128x128, 256x256, 512x512)
+            >>> results = benchmarker.benchmark(
+            ...     [kernel1, kernel2],
+            ...     N=[128, 256, 512],
+            ...     M=[128, 256, 512],
+            ...     zip_params=True
             ... )
         """
         # Parse parameter ranges
@@ -431,8 +444,15 @@ int main() {{
             param_names = ['N', 'M', 'K'][:len(param_ranges)]
             param_values = list(param_ranges)
         
-        # Generate all parameter combinations
-        param_combinations = list(itertools.product(*param_values))
+        # Generate parameter combinations
+        if zip_params:
+            # Zip parameters together (e.g., for square matrices where N=M=K)
+            if len(set(len(v) for v in param_values)) != 1:
+                raise ValueError("All parameter lists must have the same length when zip_params=True")
+            param_combinations = list(zip(*param_values))
+        else:
+            # Cartesian product of all parameters (default)
+            param_combinations = list(itertools.product(*param_values))
         
         print(f"\n{'='*70}")
         print(f"CUDA Kernel Benchmarking")
