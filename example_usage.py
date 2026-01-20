@@ -12,6 +12,14 @@ matmul_naive = kb.load_kernel("matmul_kernels.cu", "matmul_naive")
 matmul_optimized = kb.load_kernel("matmul_kernels.cu", "matmul_optimized")
 matmul_coalesced = kb.load_kernel("matmul_kernels.cu", "matmul_coalesced")
 
+# matmul_fast uses 64x64 output tiles with 16x16 threads (each thread computes 4x4)
+def grid_size_64(N, M, K):
+    return ((M + 63) // 64, (N + 63) // 64, 1)
+
+matmul_fast = kb.load_kernel("matmul_kernels.cu", "matmul_fast",
+                             block_size=(16, 16, 1),
+                             grid_size_func=grid_size_64)
+
 # Define parameter ranges
 N = [2**i for i in range(7, 12)]  # [128, 256, 512, 1024, 2048]
 M = [2**i for i in range(7, 12)]  # Same as N for square matrices
@@ -23,7 +31,7 @@ K = [2**i for i in range(7, 12)]  # Same as N
 # Benchmark all kernels for square matrices (N=M=K)
 # Note: For NCU profiling to work, you need sudo with PATH preserved:
 #   sudo env PATH=$PATH python example_usage.py
-kernels = [matmul_naive, matmul_optimized, matmul_coalesced]
+kernels = [matmul_naive, matmul_optimized, matmul_coalesced, matmul_fast]
 results = kb.benchmark(kernels, N, M, K, zip_params=True, profile=True)
 
 # Results are automatically saved to:
