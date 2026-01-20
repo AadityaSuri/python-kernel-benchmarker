@@ -21,8 +21,8 @@ K = [2**i for i in range(7, 12)]  # Same as N
 # M = [i for i in range(100, 1001, 100)]
 
 # Benchmark all kernels for square matrices (N=M=K)
-# Note: For NCU profiling to work, you may need to run with sudo:
-#   sudo python example_usage.py
+# Note: For NCU profiling to work, you need sudo with PATH preserved:
+#   sudo env PATH=$PATH python example_usage.py
 kernels = [matmul_naive, matmul_optimized, matmul_coalesced]
 results = kb.benchmark(kernels, N, M, K, zip_params=True, profile=True)
 
